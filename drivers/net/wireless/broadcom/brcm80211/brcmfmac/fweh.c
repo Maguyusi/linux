@@ -33,7 +33,7 @@ struct brcmf_fweh_queue_item {
 	u8 ifaddr[ETH_ALEN];
 	struct brcmf_event_msg_be emsg;
 	u32 datalen;
-	u8 data[];
+	u8 data[] __counted_by(datalen);
 };
 
 /*
@@ -228,6 +228,10 @@ static void brcmf_fweh_event_worker(struct work_struct *work)
 			  brcmf_fweh_event_name(event->code), event->code,
 			  event->emsg.ifidx, event->emsg.bsscfgidx,
 			  event->emsg.addr);
+		if (event->emsg.bsscfgidx >= BRCMF_MAX_IFS) {
+			bphy_err(drvr, "invalid bsscfg index: %u\n", event->emsg.bsscfgidx);
+			goto event_free;
+		}
 
 		/* convert event message */
 		emsg_be = &event->emsg;
@@ -384,6 +388,7 @@ int brcmf_fweh_activate_events(struct brcmf_if *ifp)
  * @drvr: driver information object.
  * @event_packet: event packet to process.
  * @packet_len: length of the packet
+ * @gfp: memory allocation flags.
  *
  * If the packet buffer contains a firmware event message it will
  * dispatch the event to a registered handler (using worker).
@@ -413,17 +418,17 @@ void brcmf_fweh_process_event(struct brcmf_pub *drvr,
 	    datalen + sizeof(*event_packet) > packet_len)
 		return;
 
-	event = kzalloc(sizeof(*event) + datalen, gfp);
+	event = kzalloc(struct_size(event, data, datalen), gfp);
 	if (!event)
 		return;
 
+	event->datalen = datalen;
 	event->code = code;
 	event->ifidx = event_packet->msg.ifidx;
 
 	/* use memcpy to get aligned event message */
 	memcpy(&event->emsg, &event_packet->msg, sizeof(event->emsg));
 	memcpy(event->data, data, datalen);
-	event->datalen = datalen;
 	memcpy(event->ifaddr, event_packet->eth.h_dest, ETH_ALEN);
 
 	brcmf_fweh_queue_event(fweh, event);

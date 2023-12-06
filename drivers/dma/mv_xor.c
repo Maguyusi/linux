@@ -10,8 +10,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
-#include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 #include <linux/memory.h>
 #include <linux/clk.h>
 #include <linux/of.h>
@@ -1328,13 +1328,8 @@ static int mv_xor_probe(struct platform_device *pdev)
 	 * setting up. In non-dt case it can only be the legacy one.
 	 */
 	xordev->xor_type = XOR_ORION;
-	if (pdev->dev.of_node) {
-		const struct of_device_id *of_id =
-			of_match_device(mv_xor_dt_ids,
-					&pdev->dev);
-
-		xordev->xor_type = (uintptr_t)of_id->data;
-	}
+	if (pdev->dev.of_node)
+		xordev->xor_type = (uintptr_t)device_get_match_data(&pdev->dev);
 
 	/*
 	 * (Re-)program MBUS remapping windows if we are asked to.
@@ -1455,7 +1450,7 @@ static struct platform_driver mv_xor_driver = {
 	.resume         = mv_xor_resume,
 	.driver		= {
 		.name	        = MV_XOR_NAME,
-		.of_match_table = of_match_ptr(mv_xor_dt_ids),
+		.of_match_table = mv_xor_dt_ids,
 	},
 };
 

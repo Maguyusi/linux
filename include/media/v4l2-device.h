@@ -13,8 +13,6 @@
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-dev.h>
 
-#define V4L2_DEVICE_NAME_SIZE (20 + 16)
-
 struct v4l2_ctrl_handler;
 
 /**
@@ -49,7 +47,7 @@ struct v4l2_device {
 	struct media_device *mdev;
 	struct list_head subdevs;
 	spinlock_t lock;
-	char name[V4L2_DEVICE_NAME_SIZE];
+	char name[36];
 	void (*notify)(struct v4l2_subdev *sd,
 			unsigned int notification, void *arg);
 	struct v4l2_ctrl_handler *ctrl_handler;
@@ -174,7 +172,7 @@ int __must_check v4l2_device_register_subdev(struct v4l2_device *v4l2_dev,
 void v4l2_device_unregister_subdev(struct v4l2_subdev *sd);
 
 /**
- * __v4l2_device_register_ro_subdev_nodes - Registers device nodes for
+ * __v4l2_device_register_subdev_nodes - Registers device nodes for
  *      all subdevs of the v4l2 device that are marked with the
  *      %V4L2_SUBDEV_FL_HAS_DEVNODE flag.
  *
