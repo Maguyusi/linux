@@ -636,8 +636,8 @@ static int io_alloc_pbuf_ring(struct io_ring_ctx *ctx,
 	ibf = io_lookup_buf_free_entry(ctx, ring_size);
 	if (!ibf) {
 		ptr = io_mem_alloc(ring_size);
-		if (!ptr)
-			return -ENOMEM;
+		if (IS_ERR(ptr))
+			return PTR_ERR(ptr);
 
 		/* Allocate and store deferred free entry */
 		ibf = kmalloc(sizeof(*ibf), GFP_KERNEL_ACCOUNT);
@@ -750,20 +750,46 @@ int io_unregister_pbuf_ring(struct io_ring_ctx *ctx, void __user *arg)
 	return 0;
 }
 
+int io_register_pbuf_status(struct io_ring_ctx *ctx, void __user *arg)
+{
+	struct io_uring_buf_status buf_status;
+	struct io_buffer_list *bl;
+	int i;
+
+	if (copy_from_user(&buf_status, arg, sizeof(buf_status)))
+		return -EFAULT;
+
+	for (i = 0; i < ARRAY_SIZE(buf_status.resv); i++)
+		if (buf_status.resv[i])
+			return -EINVAL;
+
+	bl = io_buffer_get_list(ctx, buf_status.buf_group);
+	if (!bl)
+		return -ENOENT;
+	if (!bl->is_mapped)
+		return -EINVAL;
+
+	buf_status.head = bl->head;
+	if (copy_to_user(arg, &buf_status, sizeof(buf_status)))
+		return -EFAULT;
+
+	return 0;
+}
+
 void *io_pbuf_get_address(struct io_ring_ctx *ctx, unsigned long bgid)
 {
 	struct io_buffer_list *bl;
 
 	bl = __io_buffer_get_list(ctx, smp_load_acquire(&ctx->io_bl), bgid);
 
+	if (!bl || !bl->is_mmap)
+		return NULL;
 	/*
 	 * Ensure the list is fully setup. Only strictly needed for RCU lookup
 	 * via mmap, and in that case only for the array indexed groups. For
 	 * the xarray lookups, it's either visible and ready, or not at all.
 	 */
 	if (!smp_load_acquire(&bl->is_ready))
-		return NULL;
-	if (!bl || !bl->is_mmap)
 		return NULL;
 
 	return bl->buf_ring;
