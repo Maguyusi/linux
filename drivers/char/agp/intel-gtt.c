@@ -25,7 +25,7 @@
 #include <asm/smp.h>
 #include "agp.h"
 #include "intel-agp.h"
-#include <drm/intel-gtt.h>
+#include <drm/intel/intel-gtt.h>
 #include <asm/set_memory.h>
 
 /*
@@ -1161,4 +1161,305 @@ static const struct agp_bridge_driver intel_fake_agp_driver = {
 	.size_type		= FIXED_APER_SIZE,
 	.aperture_sizes		= intel_fake_agp_sizes,
 	.num_aperture_sizes	= ARRAY_SIZE(intel_fake_agp_sizes),
-	.configure		= intel_fake_agp_configure		= intel_fake_agp_size                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+	.configure		= intel_fake_agp_configure,
+	.fetch_size		= intel_fake_agp_fetch_size,
+	.cleanup		= intel_gtt_cleanup,
+	.agp_enable		= intel_fake_agp_enable,
+	.cache_flush		= global_cache_flush,
+	.create_gatt_table	= intel_fake_agp_create_gatt_table,
+	.free_gatt_table	= intel_fake_agp_free_gatt_table,
+	.insert_memory		= intel_fake_agp_insert_entries,
+	.remove_memory		= intel_fake_agp_remove_entries,
+	.alloc_by_type		= intel_fake_agp_alloc_by_type,
+	.free_by_type		= intel_i810_free_by_type,
+	.agp_alloc_page		= agp_generic_alloc_page,
+	.agp_alloc_pages        = agp_generic_alloc_pages,
+	.agp_destroy_page	= agp_generic_destroy_page,
+	.agp_destroy_pages      = agp_generic_destroy_pages,
+};
+#endif
+
+static const struct intel_gtt_driver i81x_gtt_driver = {
+	.gen = 1,
+	.has_pgtbl_enable = 1,
+	.dma_mask_size = 32,
+	.setup = i810_setup,
+	.cleanup = i810_cleanup,
+	.check_flags = i830_check_flags,
+	.write_entry = i810_write_entry,
+};
+static const struct intel_gtt_driver i8xx_gtt_driver = {
+	.gen = 2,
+	.has_pgtbl_enable = 1,
+	.setup = i830_setup,
+	.cleanup = i830_cleanup,
+	.write_entry = i830_write_entry,
+	.dma_mask_size = 32,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i830_chipset_flush,
+};
+static const struct intel_gtt_driver i915_gtt_driver = {
+	.gen = 3,
+	.has_pgtbl_enable = 1,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	/* i945 is the last gpu to need phys mem (for overlay and cursors). */
+	.write_entry = i830_write_entry,
+	.dma_mask_size = 32,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+static const struct intel_gtt_driver g33_gtt_driver = {
+	.gen = 3,
+	.is_g33 = 1,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	.write_entry = i965_write_entry,
+	.dma_mask_size = 36,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+static const struct intel_gtt_driver pineview_gtt_driver = {
+	.gen = 3,
+	.is_pineview = 1, .is_g33 = 1,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	.write_entry = i965_write_entry,
+	.dma_mask_size = 36,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+static const struct intel_gtt_driver i965_gtt_driver = {
+	.gen = 4,
+	.has_pgtbl_enable = 1,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	.write_entry = i965_write_entry,
+	.dma_mask_size = 36,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+static const struct intel_gtt_driver g4x_gtt_driver = {
+	.gen = 5,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	.write_entry = i965_write_entry,
+	.dma_mask_size = 36,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+static const struct intel_gtt_driver ironlake_gtt_driver = {
+	.gen = 5,
+	.is_ironlake = 1,
+	.setup = i9xx_setup,
+	.cleanup = i9xx_cleanup,
+	.write_entry = i965_write_entry,
+	.dma_mask_size = 36,
+	.check_flags = i830_check_flags,
+	.chipset_flush = i9xx_chipset_flush,
+};
+
+/* Table to describe Intel GMCH and AGP/PCIE GART drivers.  At least one of
+ * driver and gmch_driver must be non-null, and find_gmch will determine
+ * which one should be used if a gmch_chip_id is present.
+ */
+static const struct intel_gtt_driver_description {
+	unsigned int gmch_chip_id;
+	char *name;
+	const struct intel_gtt_driver *gtt_driver;
+} intel_gtt_chipsets[] = {
+	{ PCI_DEVICE_ID_INTEL_82810_IG1, "i810",
+		&i81x_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82810_IG3, "i810",
+		&i81x_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82810E_IG, "i810",
+		&i81x_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82815_CGC, "i815",
+		&i81x_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82830_CGC, "830M",
+		&i8xx_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82845G_IG, "845G",
+		&i8xx_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82854_IG, "854",
+		&i8xx_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82855GM_IG, "855GM",
+		&i8xx_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_82865_IG, "865",
+		&i8xx_gtt_driver},
+	{ PCI_DEVICE_ID_INTEL_E7221_IG, "E7221 (i915)",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82915G_IG, "915G",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82915GM_IG, "915GM",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82945G_IG, "945G",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82945GM_IG, "945GM",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82945GME_IG, "945GME",
+		&i915_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82946GZ_IG, "946GZ",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82G35_IG, "G35",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82965Q_IG, "965Q",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82965G_IG, "965G",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82965GM_IG, "965GM",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_82965GME_IG, "965GME/GLE",
+		&i965_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_G33_IG, "G33",
+		&g33_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_Q35_IG, "Q35",
+		&g33_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_Q33_IG, "Q33",
+		&g33_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_PINEVIEW_M_IG, "GMA3150",
+		&pineview_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_PINEVIEW_IG, "GMA3150",
+		&pineview_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_GM45_IG, "GM45",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_EAGLELAKE_IG, "Eaglelake",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_Q45_IG, "Q45/Q43",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_G45_IG, "G45/G43",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_B43_IG, "B43",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_B43_1_IG, "B43",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_G41_IG, "G41",
+		&g4x_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_IRONLAKE_D_IG,
+	    "HD Graphics", &ironlake_gtt_driver },
+	{ PCI_DEVICE_ID_INTEL_IRONLAKE_M_IG,
+	    "HD Graphics", &ironlake_gtt_driver },
+	{ 0, NULL, NULL }
+};
+
+static int find_gmch(u16 device)
+{
+	struct pci_dev *gmch_device;
+
+	gmch_device = pci_get_device(PCI_VENDOR_ID_INTEL, device, NULL);
+	if (gmch_device && PCI_FUNC(gmch_device->devfn) != 0) {
+		gmch_device = pci_get_device(PCI_VENDOR_ID_INTEL,
+					     device, gmch_device);
+	}
+
+	if (!gmch_device)
+		return 0;
+
+	intel_private.pcidev = gmch_device;
+	return 1;
+}
+
+int intel_gmch_probe(struct pci_dev *bridge_pdev, struct pci_dev *gpu_pdev,
+		     struct agp_bridge_data *bridge)
+{
+	int i, mask;
+
+	for (i = 0; intel_gtt_chipsets[i].name != NULL; i++) {
+		if (gpu_pdev) {
+			if (gpu_pdev->device ==
+			    intel_gtt_chipsets[i].gmch_chip_id) {
+				intel_private.pcidev = pci_dev_get(gpu_pdev);
+				intel_private.driver =
+					intel_gtt_chipsets[i].gtt_driver;
+
+				break;
+			}
+		} else if (find_gmch(intel_gtt_chipsets[i].gmch_chip_id)) {
+			intel_private.driver =
+				intel_gtt_chipsets[i].gtt_driver;
+			break;
+		}
+	}
+
+	if (!intel_private.driver)
+		return 0;
+
+#if IS_ENABLED(CONFIG_AGP_INTEL)
+	if (bridge) {
+		if (INTEL_GTT_GEN > 1)
+			return 0;
+
+		bridge->driver = &intel_fake_agp_driver;
+		bridge->dev_private_data = &intel_private;
+		bridge->dev = bridge_pdev;
+	}
+#endif
+
+
+	/*
+	 * Can be called from the fake agp driver but also directly from
+	 * drm/i915.ko. Hence we need to check whether everything is set up
+	 * already.
+	 */
+	if (intel_private.refcount++)
+		return 1;
+
+	intel_private.bridge_dev = pci_dev_get(bridge_pdev);
+
+	dev_info(&bridge_pdev->dev, "Intel %s Chipset\n", intel_gtt_chipsets[i].name);
+
+	if (bridge) {
+		mask = intel_private.driver->dma_mask_size;
+		if (dma_set_mask(&intel_private.pcidev->dev, DMA_BIT_MASK(mask)))
+			dev_err(&intel_private.pcidev->dev,
+				"set gfx device dma mask %d-bit failed!\n",
+				mask);
+		else
+			dma_set_coherent_mask(&intel_private.pcidev->dev,
+					      DMA_BIT_MASK(mask));
+	}
+
+	if (intel_gtt_init() != 0) {
+		intel_gmch_remove();
+
+		return 0;
+	}
+
+	return 1;
+}
+EXPORT_SYMBOL(intel_gmch_probe);
+
+void intel_gmch_gtt_get(u64 *gtt_total,
+			phys_addr_t *mappable_base,
+			resource_size_t *mappable_end)
+{
+	*gtt_total = intel_private.gtt_total_entries << PAGE_SHIFT;
+	*mappable_base = intel_private.gma_bus_addr;
+	*mappable_end = intel_private.gtt_mappable_entries << PAGE_SHIFT;
+}
+EXPORT_SYMBOL(intel_gmch_gtt_get);
+
+void intel_gmch_gtt_flush(void)
+{
+	if (intel_private.driver->chipset_flush)
+		intel_private.driver->chipset_flush();
+}
+EXPORT_SYMBOL(intel_gmch_gtt_flush);
+
+void intel_gmch_remove(void)
+{
+	if (--intel_private.refcount)
+		return;
+
+	if (intel_private.scratch_page)
+		intel_gtt_teardown_scratch_page();
+	if (intel_private.pcidev)
+		pci_dev_put(intel_private.pcidev);
+	if (intel_private.bridge_dev)
+		pci_dev_put(intel_private.bridge_dev);
+	intel_private.driver = NULL;
+}
+EXPORT_SYMBOL(intel_gmch_remove);
+
+MODULE_AUTHOR("Dave Jones, Various @Intel");
+MODULE_DESCRIPTION("Intel GTT (Graphics Translation Table) routines");
+MODULE_LICENSE("GPL and additional rights");
